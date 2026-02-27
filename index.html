@@ -1,0 +1,1504 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BYU vs UTAH Stadium League (Single-File)</title>
+  <style>
+    :root{
+      --bg0:#0b1020;
+      --panel: rgba(10,16,32,0.78);
+      --panel2: rgba(10,16,32,0.92);
+      --text:#eaf1ff;
+      --muted:#a8b7d9;
+      --byu:#7cf6ff;
+      --byu2:#2a64ff;
+      --utah:#ff5b7a;
+      --coin:#ffd166;
+      --good:#5bff9a;
+      --shadow: 0 12px 40px rgba(0,0,0,0.35);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; background: radial-gradient(1200px 800px at 30% 10%, #1a2d63 0%, var(--bg0) 55%, #070a14 100%); color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+    .wrap{position:fixed; inset:0; display:flex; align-items:stretch; justify-content:center; padding:16px;}
+    .stage{
+      position:relative;
+      width:min(1100px, 100%);
+      height:100%;
+      max-height: 820px;
+      border-radius: 22px;
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      background: linear-gradient(180deg, rgba(14,23,50,0.8), rgba(6,8,18,0.85));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    canvas{display:block; width:100%; height:100%;}
+    .hud{position:absolute; inset:0; pointer-events:none;}
+    .topbar{
+      position:absolute; left:12px; right:12px; top:12px;
+      display:flex; align-items:stretch; gap:12px;
+      pointer-events:none;
+    }
+    .pill{
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      padding: 10px 12px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      display:flex; align-items:center; gap:10px;
+      min-height: 42px;
+      pointer-events:none;
+    }
+    .score{font-weight:900; display:flex; align-items:center; gap:10px;}
+    .score .team{
+      display:flex; align-items:center; gap:8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      white-space:nowrap;
+    }
+    .dot{width:10px; height:10px; border-radius:999px; display:inline-block;}
+    .dot.byu{background: var(--byu)}
+    .dot.utah{background: var(--utah)}
+    .sep{opacity:0.7}
+    .timer{margin-left:auto; font-weight:1000; font-variant-numeric: tabular-nums; white-space:nowrap;}
+    .timer .warn{color: var(--coin)}
+    .timer .danger{color: var(--utah)}
+    .power{max-width: 520px; overflow:hidden;}
+    .power .label{font-weight:1000}
+    .power .meta{opacity:0.85; font-variant-numeric: tabular-nums}
+    .power .bar{height:8px; border-radius: 99px; background: rgba(255,255,255,0.12); overflow:hidden; margin-top:8px;}
+    .power .bar > i{display:block; height:100%; width:0%; background: linear-gradient(90deg, rgba(124,246,255,0.95), rgba(255,209,102,0.95));}
+
+    .btnrow{position:absolute; right:12px; bottom:12px; display:flex; gap:10px; pointer-events:auto;}
+    .btn{
+      pointer-events:auto;
+      user-select:none; -webkit-tap-highlight-color: transparent;
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight:900;
+      color:var(--text);
+      cursor:pointer;
+      display:flex; align-items:center; gap:10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .btn:active{transform: translateY(1px)}
+    .btn small{opacity:0.7; font-weight:800}
+
+    .overlay{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(900px 600px at 50% 20%, rgba(124,246,255,0.12), rgba(0,0,0,0.62));
+      backdrop-filter: blur(10px);
+      padding: 18px;
+      pointer-events:auto;
+    }
+    .card{
+      width:min(760px, 100%);
+      border-radius: var(--radius);
+      background: rgba(6,10,20,0.78);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card header{
+      padding: 18px 18px 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    }
+    .title{display:flex; align-items:center; justify-content:space-between; gap:14px;}
+    .title h1{margin:0; font-size: 20px; letter-spacing: 0.2px;}
+    .title .tag{
+      font-weight:1000;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(124,246,255,0.12);
+      color: var(--byu);
+      font-size: 12px;
+      white-space:nowrap;
+    }
+    .card main{padding: 16px 18px 18px 18px}
+    .grid{display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px;}
+    @media (max-width: 720px){.grid{grid-template-columns:1fr}}
+    .box{background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 12px 12px;}
+    .box h3{margin:0 0 8px 0; font-size: 13px; letter-spacing:0.3px; text-transform:uppercase; color: var(--muted)}
+    .box p, .box li{margin: 0; color: rgba(234,241,255,0.88); line-height:1.35}
+    .box ul{margin:0; padding-left: 18px}
+    .kbd{display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top: 8px;}
+    .key{display:inline-block; padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); font-weight: 1000; font-size: 12px; color: var(--text);}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top: 14px;}
+    .actions button{
+      cursor:pointer; user-select:none; -webkit-tap-highlight-color: transparent;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: linear-gradient(180deg, rgba(124,246,255,0.22), rgba(124,246,255,0.10));
+      color: var(--text);
+      padding: 10px 12px;
+      font-weight: 1000;
+      letter-spacing:0.2px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    .actions button.secondary{background: rgba(255,255,255,0.06);}
+    .actions button:active{transform: translateY(1px)}
+    .fine{margin-top: 10px; color: rgba(168,183,217,0.9); font-size: 12px; line-height: 1.35;}
+    .footerline{margin-top: 8px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; color: rgba(168,183,217,0.85); font-size: 12px;}
+
+    .resultBig{
+      margin-top: 10px;
+      font-weight: 1100;
+      letter-spacing: 0.6px;
+      font-size: 34px;
+      text-align:center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.05);
+    }
+    .resultBig.win{color: var(--good); text-shadow: 0 0 22px rgba(91,255,154,0.18);}
+    .resultBig.lose{color: var(--utah); text-shadow: 0 0 22px rgba(255,91,122,0.18);}
+
+    .touch{position:absolute; inset:0; pointer-events:none;}
+    .pad{
+      position:absolute; left:14px; bottom:14px;
+      width: 150px; height: 150px;
+      pointer-events:auto;
+      display:none;
+      touch-action:none;
+    }
+    .pad .pbtn{
+      position:absolute;
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(10,16,32,0.75);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.28);
+      display:flex; align-items:center; justify-content:center;
+      font-weight: 1100;
+      color: rgba(234,241,255,0.92);
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pad .up{left:49px; top:0}
+    .pad .down{left:49px; bottom:0}
+    .pad .left{left:0; top:49px}
+    .pad .right{right:0; top:49px}
+    .mobileActions{
+      position:absolute; right:14px; bottom:14px;
+      display:none; gap:10px;
+      pointer-events:auto;
+      touch-action:none;
+    }
+    .mobileActions .mbtn{
+      width: 66px; height: 66px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(10,16,32,0.78);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.28);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      font-weight: 1100;
+      color: rgba(234,241,255,0.95);
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobileActions .mbtn small{font-weight:1000; opacity:0.72; margin-top:2px; font-size: 11px}
+    @media (pointer:coarse){
+      .pad, .mobileActions{display:flex}
+      .pad{display:block}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+
+    <div class="hud">
+      <div class="topbar">
+        <div class="pill score">
+          <span class="team"><span class="dot byu"></span>BYU <span id="p1Goals">0</span></span>
+          <span class="sep">—</span>
+          <span class="team"><span class="dot utah"></span>UTAH <span id="p2Goals">0</span></span>
+          <span class="sep" style="margin-left:6px; opacity:.55;">|</span>
+          <span style="opacity:.9; font-weight:1000;">Coins:</span>
+          <span id="coinScore" style="font-weight:1100; color: var(--coin);">0</span>
+        </div>
+
+        <div class="pill power" style="min-width: 300px;">
+          <div style="display:flex; align-items:center; gap:10px; width:100%;">
+            <div id="powerIcon" style="width:34px;height:34px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-weight:1100;">
+              ?
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div class="label" id="powerName">No Power-Up</div>
+              <div class="meta" id="powerMeta">Hit a Mystery Box</div>
+              <div class="bar"><i id="powerBar"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pill timer">
+          <span style="opacity:.85; font-weight:1000;" id="timeLabel">Time</span>
+          <span id="timeLeft" style="margin-left:10px;">60.0</span>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="restartBtn" title="Restart match">
+          Restart <small>(R)</small>
+        </button>
+      </div>
+    </div>
+
+    <div class="touch">
+      <div class="pad" id="dpad">
+        <div class="pbtn up" data-dir="up">▲</div>
+        <div class="pbtn left" data-dir="left">◀</div>
+        <div class="pbtn right" data-dir="right">▶</div>
+        <div class="pbtn down" data-dir="down">▼</div>
+      </div>
+      <div class="mobileActions">
+        <div class="mbtn" id="jumpBtn">⤴<small>Jump</small></div>
+        <div class="mbtn" id="pauseBtn">⏸<small>Pause</small></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <header>
+          <div class="title">
+            <h1 id="overlayTitle">BYU Stadium League</h1>
+            <div class="tag">Lavell Edwards vibes</div>
+          </div>
+        </header>
+        <main>
+          <div id="resultBig" class="resultBig" style="display:none;"></div>
+
+          <div class="grid" style="margin-top:12px;">
+            <div class="box">
+              <h3>How to Play</h3>
+              <p>
+                Push the ball into the opponent’s goal to score. Coins are bonus points.
+                Mystery Boxes grant a random BYU-themed power-up for ~4 seconds.
+                The field boundary is the game boundary. If BYU and UTAH cars touch, they explode and respawn.
+                If regulation ends tied, overtime is sudden death (next goal wins).
+              </p>
+              <div class="kbd">
+                <span class="key">WASD</span><span class="key">↑↓←→</span><span class="key">Move</span>
+                <span class="key">Space</span><span class="key">Jump</span>
+                <span class="key">P</span><span class="key">Pause</span>
+                <span class="key">R</span><span class="key">Restart</span>
+              </div>
+              <div class="fine">
+                Power-ups:
+                <b style="color:var(--byu)">Bear Bachmeier</b> (Truck Stick),
+                <b style="color:var(--good)">Steve Young</b> (Magnet Arm),
+                <b style="color:var(--coin)">Cosmo</b> (Triple Jump).
+              </div>
+            </div>
+            <div class="box">
+              <h3>Match Rules</h3>
+              <ul>
+                <li>60-second regulation</li>
+                <li>Tied at 0.0 → <b>Overtime</b> (sudden death)</li>
+                <li>Opponent team: <b>UTAH</b></li>
+                <li>Press <b>P</b> to pause anytime</li>
+              </ul>
+              <div class="actions">
+                <button id="playBtn">Play</button>
+                <button class="secondary" id="tipsBtn">Toggle Tips</button>
+              </div>
+              <div class="footerline">
+                <span id="overlayHint">Tip: On mobile, use the on-screen controls.</span>
+                <span style="opacity:.8;">v1.3</span>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(() => {
+  // Utils
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const dist2 = (ax, ay, bx, by) => { const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; };
+
+  // Canvas
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  const WORLD = { w: 960, h: 540 };
+  let view = { scale: 1, ox: 0, oy: 0, cw: 960, ch: 540 };
+
+  function resize() {
+    const stage = document.getElementById('stage');
+    const rect = stage.getBoundingClientRect();
+    canvas.width = Math.max(2, Math.floor(rect.width * devicePixelRatio));
+    canvas.height = Math.max(2, Math.floor(rect.height * devicePixelRatio));
+    view.cw = canvas.width; view.ch = canvas.height;
+    const sx = view.cw / WORLD.w, sy = view.ch / WORLD.h;
+    view.scale = Math.min(sx, sy);
+    view.ox = (view.cw - WORLD.w * view.scale) * 0.5;
+    view.oy = (view.ch - WORLD.h * view.scale) * 0.5;
+    ctx.setTransform(1,0,0,1,0,0);
+  }
+  window.addEventListener('resize', resize);
+
+  // Field rect is the game boundary
+  const FIELD = { x: 70, y: 55, w: WORLD.w - 140, h: WORLD.h - 110 };
+  const ENDZONE_W = 110;
+
+  // Goals inside endzones (within the FIELD)
+  const goals = {
+    // BYU goal is left endzone; if ball enters it, UTAH scores
+    left:  { x: FIELD.x + 14, y: FIELD.y + FIELD.h*0.5 - 55, w: 18, h: 110 },
+    // UTAH goal is right endzone; if ball enters it, BYU scores
+    right: { x: FIELD.x + FIELD.w - 14 - 18, y: FIELD.y + FIELD.h*0.5 - 55, w: 18, h: 110 }
+  };
+
+  // Input
+  const keys = new Map();
+  const input = { up:false, down:false, left:false, right:false, jumpPressed:false, jumpHeld:false, pausePressed:false, restartPressed:false };
+  function syncInputFromKeys(){
+    input.up = !!(keys.get('KeyW') || keys.get('ArrowUp'));
+    input.down = !!(keys.get('KeyS') || keys.get('ArrowDown'));
+    input.left = !!(keys.get('KeyA') || keys.get('ArrowLeft'));
+    input.right = !!(keys.get('KeyD') || keys.get('ArrowRight'));
+  }
+  function setKey(code, isDown){ keys.set(code, isDown); syncInputFromKeys(); }
+
+  window.addEventListener('keydown', (e) => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    if (!keys.get(e.code)) {
+      if (e.code === 'Space') input.jumpPressed = true;
+      if (e.code === 'KeyP') input.pausePressed = true;
+      if (e.code === 'KeyR') input.restartPressed = true;
+    }
+    if (e.code === 'Space') input.jumpHeld = true;
+    setKey(e.code, true);
+  }, {passive:false});
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') input.jumpHeld = false;
+    setKey(e.code, false);
+  });
+
+  // Mobile
+  const dpad = document.getElementById('dpad');
+  const jumpBtn = document.getElementById('jumpBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const touchState = { up:false,down:false,left:false,right:false, jump:false };
+
+  function updateFromTouch(){
+    input.up = touchState.up || input.up;
+    input.down = touchState.down || input.down;
+    input.left = touchState.left || input.left;
+    input.right = touchState.right || input.right;
+    if (touchState.jump) {
+      if (!input.jumpHeld) input.jumpPressed = true;
+      input.jumpHeld = true;
+    } else input.jumpHeld = false;
+  }
+  function bindPress(el, onDown, onUp){
+    const down = (e) => { e.preventDefault(); onDown(); };
+    const up = (e) => { e.preventDefault(); onUp(); };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+  }
+  dpad.querySelectorAll('.pbtn').forEach(btn => {
+    const dir = btn.dataset.dir;
+    bindPress(btn, () => { touchState[dir] = true; updateFromTouch(); }, () => { touchState[dir] = false; });
+  });
+  bindPress(jumpBtn, () => { touchState.jump = true; updateFromTouch(); }, () => { touchState.jump = false; });
+  bindPress(pauseBtn, () => { input.pausePressed = true; }, () => {});
+
+  // Audio
+  let audioCtx = null;
+  function beep(freq=440, dur=0.07, type='sine', gain=0.05){
+    try{
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0 + dur);
+    }catch(_){}
+  }
+
+  // Power-ups (BYU themed mapping)
+  const POWER = { NONE:'NONE', BEAR:'BEAR', STEVE:'STEVE', COSMO:'COSMO' };
+  const powerInfo = {
+    [POWER.NONE]:  { name:'No Power-Up', icon:'?',  color:'#a8b7d9', help:'Hit a Mystery Box' },
+    [POWER.BEAR]:  { name:'Bear Bachmeier — Truck Stick', icon:'🐻', color:'#7cf6ff', help:'Super Hit: smash the ball harder' },
+    [POWER.STEVE]: { name:'Steve Young — Magnet Arm',     icon:'🏈', color:'#5bff9a', help:'Magnet: pull the ball when close' },
+    [POWER.COSMO]: { name:'Cosmo — Triple Jump',          icon:'🪶', color:'#ffd166', help:'Triple Jump: up to 3 jumps' }
+  };
+
+  // Objects
+  function makeCar(x,y,color){
+    return {
+      x,y, vx:0, vy:0, r:14, color,
+      z:0, vz:0, grounded:true, jumpCount:0, maxJumps:1,
+      faceX:1, faceY:0,
+      power:POWER.NONE, powerT:0,
+      trail:[],
+      respawnLock: 0
+    };
+  }
+  function makeBall(x,y){ return { x,y, vx: rand(-60,60), vy: rand(-40,40), r:12 }; }
+  function makeCoin(x,y){ return { x,y, r:7, taken:false }; }
+  function makeBox(x,y){ return { x,y, w:20, h:20, active:true, respawnT:0, collectLockT:0, phase: rand(0, Math.PI*2) }; }
+
+  function clampToFieldCircle(x,y,r){
+    const minX = FIELD.x + r;
+    const maxX = FIELD.x + FIELD.w - r;
+    const minY = FIELD.y + r;
+    const maxY = FIELD.y + FIELD.h - r;
+    return { x: clamp(x, minX, maxX), y: clamp(y, minY, maxY) };
+  }
+
+  // Spawns (inside field)
+  const BYU_SPAWN = { x: FIELD.x + 150, y: FIELD.y + FIELD.h*0.5 };
+  const UTAH_SPAWN = { x: FIELD.x + FIELD.w - 150, y: FIELD.y + FIELD.h*0.5 };
+
+  const coinSpawns = [
+    [FIELD.x + FIELD.w*0.5, FIELD.y + 90],
+    [FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h - 90],
+    [FIELD.x + FIELD.w*0.25, FIELD.y + FIELD.h*0.5],
+    [FIELD.x + FIELD.w*0.75, FIELD.y + FIELD.h*0.5],
+    [FIELD.x + FIELD.w*0.33, FIELD.y + 140],
+    [FIELD.x + FIELD.w*0.66, FIELD.y + FIELD.h - 140],
+    [FIELD.x + FIELD.w*0.5 - 200, FIELD.y + FIELD.h*0.5 - 18],
+    [FIELD.x + FIELD.w*0.5 + 200, FIELD.y + FIELD.h*0.5 + 18],
+  ];
+  const boxSpawns = [
+    [FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h*0.5 + 150],
+    [FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h*0.5 - 170],
+    [FIELD.x + FIELD.w*0.28, FIELD.y + FIELD.h*0.5 - 130],
+    [FIELD.x + FIELD.w*0.72, FIELD.y + FIELD.h*0.5 + 130],
+  ];
+
+  // UI refs
+  const UI = {
+    overlay: document.getElementById('overlay'),
+    playBtn: document.getElementById('playBtn'),
+    tipsBtn: document.getElementById('tipsBtn'),
+    overlayTitle: document.getElementById('overlayTitle'),
+    overlayHint: document.getElementById('overlayHint'),
+    resultBig: document.getElementById('resultBig'),
+    restartBtn: document.getElementById('restartBtn'),
+
+    p1Goals: document.getElementById('p1Goals'),
+    p2Goals: document.getElementById('p2Goals'),
+    coinScore: document.getElementById('coinScore'),
+    timeLabel: document.getElementById('timeLabel'),
+    timeLeft: document.getElementById('timeLeft'),
+
+    powerIcon: document.getElementById('powerIcon'),
+    powerName: document.getElementById('powerName'),
+    powerMeta: document.getElementById('powerMeta'),
+    powerBar: document.getElementById('powerBar'),
+  };
+
+  // State
+  let state = {
+    running:false, paused:false, gameOver:false, showTips:true,
+    matchT:60.0, overtime:false, overtimeT:0.0,
+    byu: makeCar(BYU_SPAWN.x, BYU_SPAWN.y, '#7cf6ff'),
+    utah: makeCar(UTAH_SPAWN.x, UTAH_SPAWN.y, '#ff5b7a'),
+    ball: makeBall(FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h*0.5),
+    coins:[], boxes:[],
+    score:{ byuGoals:0, utahGoals:0, coinPoints:0 },
+    boomCooldown: 0,
+    particles: []
+  };
+
+  // Physics (cars faster)
+  const PHYS = {
+    carAccel: 1450,
+    carMax: 410,
+    carFriction: 9.0,
+    carTurnDrag: 0.06,
+
+    ballFriction: 1.85,
+    ballRestitution: 0.86,
+    wallRestitution: 0.74,
+
+    jumpVel: 460,
+    gravity: 1200,
+
+    hitStrength: 560,
+    bearMult: 2.25,
+
+    magnetRadius: 175,
+    magnetForce: 270,
+  };
+
+  // Collision helper
+  function circleAABBResolve(cx, cy, r, rect){
+    const nx = clamp(cx, rect.x, rect.x + rect.w);
+    const ny = clamp(cy, rect.y, rect.y + rect.h);
+    let dx = cx - nx, dy = cy - ny;
+    const d2 = dx*dx + dy*dy;
+    if (d2 > r*r || d2 === 0) {
+      if (d2 === 0) { dx = 0; dy = -1; }
+      else return null;
+    }
+    const d = Math.sqrt(dx*dx + dy*dy) || 0.0001;
+    const overlap = r - d;
+    const nxn = dx / d, nyn = dy / d;
+    return { nx:nxn, ny:nyn, overlap, px: nxn*overlap, py: nyn*overlap };
+  }
+
+  // Explosion particles
+  function spawnExplosion(x,y, colorA='rgba(124,246,255,0.95)', colorB='rgba(255,91,122,0.95)'){
+    // sound burst
+    beep(120, 0.10, 'sawtooth', 0.06);
+    setTimeout(()=>beep(80, 0.12, 'square', 0.05), 70);
+    setTimeout(()=>beep(220, 0.08, 'triangle', 0.03), 110);
+
+    for (let i=0;i<46;i++){
+      const a = Math.random()*Math.PI*2;
+      const sp = rand(120, 520);
+      state.particles.push({
+        x,y,
+        vx: Math.cos(a)*sp,
+        vy: Math.sin(a)*sp,
+        r: rand(2,5),
+        t: rand(0.35, 0.65),
+        col: (Math.random()<0.5)?colorA:colorB
+      });
+    }
+    // shock ring
+    state.particles.push({ x,y, vx:0, vy:0, r: 8, t: 0.35, ring:true, col:'rgba(255,255,255,0.85)' });
+  }
+
+  // Power helpers
+  function setPower(car, power){
+    car.power = power;
+    car.powerT = (power === POWER.NONE) ? 0 : 4.0;
+    car.maxJumps = (power === POWER.COSMO) ? 3 : 1;
+  }
+  function randomPower(){
+    const r = Math.random();
+    if (r < 0.34) return POWER.BEAR;
+    if (r < 0.67) return POWER.STEVE;
+    return POWER.COSMO;
+  }
+
+  // Match controls
+  function resetMatch(){
+    state.matchT = 60.0;
+    state.overtime = false;
+    state.overtimeT = 0;
+    state.paused = false;
+    state.gameOver = false;
+
+    state.byu = makeCar(BYU_SPAWN.x, BYU_SPAWN.y, '#7cf6ff');
+    state.utah = makeCar(UTAH_SPAWN.x, UTAH_SPAWN.y, '#ff5b7a');
+    state.ball = makeBall(FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h*0.5);
+
+    state.score = { byuGoals:0, utahGoals:0, coinPoints:0 };
+    state.coins = coinSpawns.map(([x,y]) => makeCoin(x,y));
+    state.boxes = boxSpawns.map(([x,y]) => makeBox(x,y)).slice(0,3);
+    state.particles = [];
+    state.boomCooldown = 0;
+
+    UI.resultBig.style.display = 'none';
+    UI.resultBig.className = 'resultBig';
+    UI.overlayTitle.textContent = 'BYU Stadium League';
+    updateHud();
+  }
+
+  function startGame(){
+    state.running = true;
+    UI.overlay.style.display = 'none';
+    resetMatch();
+    beep(660, 0.06, 'triangle', 0.05);
+  }
+
+  function endGame(){
+    state.gameOver = true;
+    state.running = false;
+    UI.overlay.style.display = 'flex';
+
+    const byu = state.score.byuGoals;
+    const utah = state.score.utahGoals;
+    const youWon = byu > utah;
+
+    UI.resultBig.style.display = 'block';
+    UI.resultBig.textContent = youWon ? 'YOU WON!' : 'YOU LOST!';
+    UI.resultBig.classList.toggle('win', youWon);
+    UI.resultBig.classList.toggle('lose', !youWon);
+
+    UI.overlayTitle.textContent = 'Final Whistle';
+    UI.overlayHint.textContent = `Final: BYU ${byu} — UTAH ${utah} | Coins: ${state.score.coinPoints} pts`;
+
+    beep(youWon ? 880 : 220, 0.12, 'sine', 0.06);
+    setTimeout(() => beep(youWon ? 1100 : 180, 0.10, 'sine', 0.05), 130);
+  }
+
+  function togglePause(){
+    if (state.gameOver || !state.running) return;
+    state.paused = !state.paused;
+    beep(state.paused ? 320 : 520, 0.06, 'square', 0.04);
+  }
+
+  function enterOvertime(){
+    state.overtime = true;
+    state.overtimeT = 0;
+    beep(420, 0.08, 'square', 0.05);
+    setTimeout(() => beep(560, 0.08, 'square', 0.04), 110);
+  }
+
+  // HUD
+  function updateHud(){
+    UI.p1Goals.textContent = state.score.byuGoals;
+    UI.p2Goals.textContent = state.score.utahGoals;
+    UI.coinScore.textContent = state.score.coinPoints;
+
+    if (!state.overtime){
+      const t = Math.max(0, state.matchT);
+      UI.timeLabel.textContent = 'Time';
+      UI.timeLeft.textContent = t.toFixed(1);
+      UI.timeLeft.classList.remove('warn','danger');
+      if (t <= 10) UI.timeLeft.classList.add('danger');
+      else if (t <= 20) UI.timeLeft.classList.add('warn');
+    } else {
+      UI.timeLabel.textContent = 'OT';
+      UI.timeLeft.textContent = state.overtimeT.toFixed(1);
+      UI.timeLeft.classList.remove('warn','danger');
+      UI.timeLeft.classList.add('warn');
+    }
+
+    const p = state.byu.power;
+    const info = powerInfo[p];
+    UI.powerIcon.textContent = info.icon;
+    UI.powerName.textContent = info.name;
+    if (p === POWER.NONE){
+      UI.powerMeta.textContent = info.help;
+      UI.powerBar.style.width = '0%';
+      UI.powerIcon.style.color = info.color;
+    } else {
+      UI.powerMeta.textContent = `Ends in ${Math.max(0, state.byu.powerT).toFixed(1)}s`;
+      const pct = clamp(state.byu.powerT / 4.0, 0, 1) * 100;
+      UI.powerBar.style.width = pct.toFixed(0) + '%';
+      UI.powerIcon.style.color = info.color;
+    }
+  }
+
+  // Movement & physics
+  function applyCarControls(car, dt, ctrl){
+    let ax=0, ay=0;
+    if (ctrl.up) ay -= 1;
+    if (ctrl.down) ay += 1;
+    if (ctrl.left) ax -= 1;
+    if (ctrl.right) ax += 1;
+
+    const mag = Math.hypot(ax, ay);
+    if (mag > 0) { ax/=mag; ay/=mag; }
+
+    car.vx += ax * PHYS.carAccel * dt;
+    car.vy += ay * PHYS.carAccel * dt;
+
+    car.vx -= car.vx * PHYS.carTurnDrag * dt;
+    car.vy -= car.vy * PHYS.carTurnDrag * dt;
+
+    const sp = Math.hypot(car.vx, car.vy);
+    if (sp > PHYS.carMax){
+      const s = PHYS.carMax / (sp || 1);
+      car.vx *= s; car.vy *= s;
+    }
+    if (sp > 6){ car.faceX = car.vx/sp; car.faceY = car.vy/sp; }
+
+    if (ctrl.jumpPressed){
+      const canJump = car.grounded || (car.jumpCount < car.maxJumps);
+      if (canJump){
+        car.vz = PHYS.jumpVel;
+        car.grounded = false;
+        car.jumpCount += 1;
+        beep(520, 0.05, 'triangle', 0.03);
+      } else {
+        beep(180, 0.03, 'square', 0.02);
+      }
+    }
+    ctrl.jumpPressed = false;
+  }
+
+  function integrateCar(car, dt){
+    // respawn lock countdown
+    if (car.respawnLock > 0) car.respawnLock -= dt;
+
+    car.vz -= PHYS.gravity * dt;
+    car.z += car.vz * dt;
+    if (car.z <= 0){
+      car.z = 0; car.vz = 0;
+      if (!car.grounded){ car.grounded = true; car.jumpCount = 0; }
+    } else car.grounded = false;
+
+    const fr = car.grounded ? PHYS.carFriction : PHYS.carFriction * 0.35;
+    const damp = Math.exp(-fr * dt);
+    car.vx *= damp; car.vy *= damp;
+
+    car.x += car.vx * dt;
+    car.y += car.vy * dt;
+
+    // clamp to field boundary (game boundary)
+    const c = clampToFieldCircle(car.x, car.y, car.r);
+    car.x = c.x; car.y = c.y;
+
+    car.trail.push({x:car.x, y:car.y, t:0.18});
+    if (car.trail.length > 22) car.trail.shift();
+    for (const p of car.trail) p.t -= dt;
+    while (car.trail.length && car.trail[0].t <= 0) car.trail.shift();
+  }
+
+  function integrateBall(ball, dt){
+    const damp = Math.exp(-PHYS.ballFriction * dt);
+    ball.vx *= damp; ball.vy *= damp;
+
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+
+    // field bounds bounce (game boundary)
+    const minX = FIELD.x + ball.r;
+    const maxX = FIELD.x + FIELD.w - ball.r;
+    const minY = FIELD.y + ball.r;
+    const maxY = FIELD.y + FIELD.h - ball.r;
+
+    if (ball.x < minX){ ball.x = minX; ball.vx = Math.abs(ball.vx) * PHYS.wallRestitution; }
+    if (ball.x > maxX){ ball.x = maxX; ball.vx = -Math.abs(ball.vx) * PHYS.wallRestitution; }
+    if (ball.y < minY){ ball.y = minY; ball.vy = Math.abs(ball.vy) * PHYS.wallRestitution; }
+    if (ball.y > maxY){ ball.y = maxY; ball.vy = -Math.abs(ball.vy) * PHYS.wallRestitution; }
+  }
+
+  function resolveCarBall(car, ball, isBYU){
+    const effective = (car.z < 28);
+    const dx = ball.x - car.x, dy = ball.y - car.y;
+    const d = Math.hypot(dx, dy);
+    const minD = ball.r + car.r;
+
+    if (d > 0 && d < minD){
+      const nx = dx / d, ny = dy / d;
+      const overlap = minD - d;
+
+      ball.x += nx * overlap * 0.85;
+      ball.y += ny * overlap * 0.85;
+      car.x -= nx * overlap * 0.15;
+      car.y -= ny * overlap * 0.15;
+
+      let impulse = PHYS.hitStrength;
+      if (isBYU && car.power === POWER.BEAR) impulse *= PHYS.bearMult;
+
+      const carInto = (car.vx*nx + car.vy*ny);
+      const relVx = (ball.vx - car.vx), relVy = (ball.vy - car.vy);
+      const relN = relVx*nx + relVy*ny;
+      const hit = (carInto > 0 ? carInto : 0) + (relN < 0 ? -relN : 0);
+      const strength = clamp(hit / 240, 0, 1.25);
+      const push = impulse * (0.35 + strength);
+
+      if (effective){
+        ball.vx += nx * push;
+        ball.vy += ny * push;
+        car.vx -= nx * push * 0.08;
+        car.vy -= ny * push * 0.08;
+        beep(isBYU && car.power===POWER.BEAR ? 760 : 540, 0.03, 'square', 0.02);
+      } else {
+        ball.vx += nx * 120;
+        ball.vy += ny * 120;
+      }
+    }
+  }
+
+  // Car-car explosion on touch
+  function carCarExplodeIfTouch(){
+    if (state.boomCooldown > 0) return;
+
+    const a = state.byu, b = state.utah;
+    if (a.respawnLock > 0 || b.respawnLock > 0) return;
+
+    // only when both near ground (prevents random midair touches feeling unfair)
+    if (a.z > 22 || b.z > 22) return;
+
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d < a.r + b.r){
+      state.boomCooldown = 0.9;
+
+      const mx = (a.x + b.x)*0.5;
+      const my = (a.y + b.y)*0.5;
+
+      spawnExplosion(mx, my, 'rgba(124,246,255,0.95)', 'rgba(255,91,122,0.95)');
+
+      // kick ball a bit for fun
+      const bb = state.ball;
+      const dx = bb.x - mx, dy = bb.y - my;
+      const dd = Math.hypot(dx, dy) || 1;
+      bb.vx += (dx/dd) * 220;
+      bb.vy += (dy/dd) * 220;
+
+      // respawn both cars
+      respawnCar(state.byu, BYU_SPAWN.x, BYU_SPAWN.y);
+      respawnCar(state.utah, UTAH_SPAWN.x, UTAH_SPAWN.y);
+    }
+  }
+
+  function respawnCar(car, x, y){
+    car.x = x; car.y = y;
+    car.vx = 0; car.vy = 0;
+    car.z = 0; car.vz = 0;
+    car.jumpCount = 0; car.grounded = true;
+    car.respawnLock = 0.55; // brief invuln so they don't chain explode
+  }
+
+  // Coins & Boxes
+  function updateCoins(){
+    const p = state.byu;
+    for (const c of state.coins){
+      if (c.taken) continue;
+      const rr = (p.r + c.r + 2);
+      if (dist2(p.x, p.y, c.x, c.y) < rr*rr){
+        c.taken = true;
+        state.score.coinPoints += 1;
+        beep(980, 0.04, 'triangle', 0.03);
+      }
+    }
+  }
+
+  function updateBoxes(dt){
+    const p = state.byu;
+    for (const b of state.boxes){
+      b.phase += dt * 2.2;
+
+      if (!b.active){
+        b.respawnT -= dt;
+        if (b.respawnT <= 0){
+          b.active = true;
+          b.collectLockT = 1.0;
+        }
+        continue;
+      }
+      if (b.collectLockT > 0) b.collectLockT -= dt;
+
+      const rect = { x: b.x - b.w*0.5, y: b.y - b.h*0.5, w: b.w, h: b.h };
+      const hit = circleAABBResolve(p.x, p.y, p.r, rect);
+      if (hit && b.collectLockT <= 0){
+        b.active = false;
+        b.respawnT = 8.0;
+
+        const pow = randomPower();
+        setPower(p, pow);
+
+        if (pow === POWER.BEAR)  { beep(740,0.05,'square',0.04); setTimeout(()=>beep(980,0.05,'square',0.035),80); }
+        if (pow === POWER.STEVE) { beep(520,0.05,'sine',0.04);  setTimeout(()=>beep(660,0.05,'sine',0.035),80); }
+        if (pow === POWER.COSMO) { beep(600,0.04,'triangle',0.04); setTimeout(()=>beep(760,0.04,'triangle',0.035),70); setTimeout(()=>beep(920,0.04,'triangle',0.03),140); }
+      }
+    }
+  }
+
+  function updatePower(dt){
+    const p = state.byu;
+    if (p.power !== POWER.NONE){
+      p.powerT -= dt;
+      if (p.powerT <= 0) setPower(p, POWER.NONE);
+    }
+  }
+
+  function applyMagnet(dt){
+    const p = state.byu;
+    if (p.power !== POWER.STEVE) return;
+    const b = state.ball;
+    const d = Math.hypot(b.x - p.x, b.y - p.y);
+    if (d < PHYS.magnetRadius && d > 0.001){
+      const nx = (p.x - b.x) / d;
+      const ny = (p.y - b.y) / d;
+      const strength = (1 - (d / PHYS.magnetRadius));
+      const force = PHYS.magnetForce * strength;
+      b.vx += nx * force * dt;
+      b.vy += ny * force * dt;
+      b.vx *= (1 - 0.04 * dt);
+      b.vy *= (1 - 0.04 * dt);
+    }
+  }
+
+  // CPU (Utah)
+  function utahControl(dt){
+    const cpu = state.utah;
+    const ball = state.ball;
+
+    // defend right endzone / goal
+    const defend = (ball.x > FIELD.x + FIELD.w * 0.55) || (Math.abs(ball.x - (FIELD.x + FIELD.w - 40)) < 260);
+
+    let tx, ty;
+    if (defend){
+      tx = lerp(ball.x, FIELD.x + FIELD.w - 36, 0.65);
+      ty = lerp(ball.y, FIELD.y + FIELD.h*0.5, 0.35);
+    } else {
+      tx = ball.x; ty = ball.y;
+    }
+
+    const dx = tx - cpu.x, dy = ty - cpu.y;
+    const d = Math.hypot(dx,dy) || 1;
+
+    const ctrl = { up:false,down:false,left:false,right:false, jumpPressed:false };
+    if (dy < -10) ctrl.up = true;
+    if (dy > 10) ctrl.down = true;
+    if (dx < -10) ctrl.left = true;
+    if (dx > 10) ctrl.right = true;
+
+    if (d < 70 && cpu.grounded && Math.random() < 0.018) ctrl.jumpPressed = true;
+
+    applyCarControls(cpu, dt, ctrl);
+  }
+
+  // Goals
+  function ballInGoal(g){
+    const b = state.ball;
+    return (b.x > g.x && b.x < g.x + g.w && b.y > g.y && b.y < g.y + g.h);
+  }
+
+  function resetAfterGoal(who){
+    beep(who === 'byu' ? 880 : 260, 0.10, 'sawtooth', 0.04);
+    setTimeout(() => beep(who === 'byu' ? 1100 : 220, 0.08, 'sine', 0.04), 120);
+
+    state.ball.x = FIELD.x + FIELD.w*0.5;
+    state.ball.y = FIELD.y + FIELD.h*0.5;
+    state.ball.vx = rand(-110,110);
+    state.ball.vy = rand(-90,90);
+
+    respawnCar(state.byu, BYU_SPAWN.x, BYU_SPAWN.y);
+    respawnCar(state.utah, UTAH_SPAWN.x, UTAH_SPAWN.y);
+  }
+
+  function checkGoal(){
+    if (ballInGoal(goals.left)){
+      state.score.utahGoals += 1;
+      resetAfterGoal('utah');
+      if (state.overtime) endGame();
+      return;
+    }
+    if (ballInGoal(goals.right)){
+      state.score.byuGoals += 1;
+      resetAfterGoal('byu');
+      if (state.overtime) endGame();
+      return;
+    }
+  }
+
+  // Particles update
+  function updateParticles(dt){
+    for (const p of state.particles){
+      p.t -= dt;
+      if (!p.ring){
+        p.vx *= Math.exp(-3.2*dt);
+        p.vy *= Math.exp(-3.2*dt);
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      } else {
+        p.r += 520*dt;
+      }
+    }
+    state.particles = state.particles.filter(p => p.t > 0);
+  }
+
+  // Step
+  function step(dt){
+    if (input.pausePressed){ togglePause(); input.pausePressed = false; }
+    if (input.restartPressed){ resetMatch(); input.restartPressed = false; }
+
+    if (state.boomCooldown > 0) state.boomCooldown -= dt;
+
+    if (!state.running || state.paused){
+      updateParticles(dt);
+      return;
+    }
+
+    if (!state.overtime){
+      state.matchT -= dt;
+      if (state.matchT <= 0){
+        state.matchT = 0;
+        if (state.score.byuGoals === state.score.utahGoals) enterOvertime();
+        else { updateHud(); endGame(); return; }
+      }
+    } else {
+      state.overtimeT += dt;
+    }
+
+    updateFromTouch();
+
+    applyCarControls(state.byu, dt, input);
+    utahControl(dt);
+
+    integrateCar(state.byu, dt);
+    integrateCar(state.utah, dt);
+    integrateBall(state.ball, dt);
+
+    resolveCarBall(state.byu, state.ball, true);
+    resolveCarBall(state.utah, state.ball, false);
+
+    // car-car explosion
+    carCarExplodeIfTouch();
+
+    updatePower(dt);
+    applyMagnet(dt);
+
+    updateCoins();
+    updateBoxes(dt);
+
+    checkGoal();
+    updateParticles(dt);
+    updateHud();
+  }
+
+  // Drawing helpers
+  function worldToScreen(){ ctx.setTransform(view.scale, 0, 0, view.scale, view.ox, view.oy); }
+  function drawRoundedRect(x,y,w,h,r){
+    r = Math.min(r, w*0.5, h*0.5);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y, x+w,y+h, r);
+    ctx.arcTo(x+w,y+h, x,y+h, r);
+    ctx.arcTo(x,y+h, x,y, r);
+    ctx.arcTo(x,y, x+w,y, r);
+    ctx.closePath();
+  }
+
+  function drawGoal(g, glow, label){
+    ctx.save();
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillRect(g.x, g.y, g.w, g.h);
+
+    ctx.globalAlpha = 0.20;
+    ctx.fillStyle = glow;
+    ctx.fillRect(g.x - 16, g.y - 12, g.w + 32, g.h + 24);
+
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = 'rgba(234,241,255,0.92)';
+    ctx.font = '1000 12px ui-sans-serif, system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const lx = (g.x < FIELD.x + FIELD.w*0.5) ? (g.x + g.w + 54) : (g.x - 54);
+    ctx.fillText(label, lx, g.y + g.h/2);
+    ctx.restore();
+  }
+
+  // Stadium + field (field edge = game boundary)
+  function drawStadium(t){
+    ctx.fillStyle = '#07102a';
+    ctx.fillRect(0,0,WORLD.w,WORLD.h);
+
+    const cx = WORLD.w*0.5, cy = WORLD.h*0.5;
+    const rx = WORLD.w*0.49, ry = WORLD.h*0.44;
+
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.ellipse(cx+6, cy+8, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    const gStand = ctx.createLinearGradient(0, cy-ry, 0, cy+ry);
+    gStand.addColorStop(0, 'rgba(40,80,220,0.35)');
+    gStand.addColorStop(0.5, 'rgba(10,18,40,0.95)');
+    gStand.addColorStop(1, 'rgba(40,80,220,0.25)');
+    ctx.fillStyle = gStand;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = 'rgba(10,16,32,0.75)';
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx*0.86, ry*0.80, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Field
+    const fx = FIELD.x, fy = FIELD.y, fw = FIELD.w, fh = FIELD.h;
+
+    const gField = ctx.createLinearGradient(0, fy, 0, fy+fh);
+    gField.addColorStop(0,'#0f5f2d');
+    gField.addColorStop(1,'#0b4b24');
+    ctx.fillStyle = gField;
+    drawRoundedRect(fx, fy, fw, fh, 30);
+    ctx.fill();
+
+    // stripes
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = '#7ff2a8';
+    const stripeW = fw / 12;
+    for (let i=0;i<12;i++){
+      if (i % 2 === 0){
+        drawRoundedRect(fx + i*stripeW, fy+6, stripeW, fh-12, 18);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Field border (this is the game boundary)
+    ctx.strokeStyle = 'rgba(255,255,255,0.40)';
+    ctx.lineWidth = 3;
+    drawRoundedRect(fx+2, fy+2, fw-4, fh-4, 28);
+    ctx.stroke();
+
+    // Endzones
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = 'rgba(42,100,255,0.35)';
+    drawRoundedRect(fx+6, fy+8, ENDZONE_W, fh-16, 22);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,91,122,0.28)';
+    drawRoundedRect(fx+fw-ENDZONE_W-6, fy+8, ENDZONE_W, fh-16, 22);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // yard lines
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 2;
+    for (let i=1;i<10;i++){
+      const x = fx + ENDZONE_W + (fw - 2*ENDZONE_W) * (i/10);
+      ctx.beginPath();
+      ctx.moveTo(x, fy+16);
+      ctx.lineTo(x, fy+fh-16);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Midfield logo (stylized Y)
+    ctx.save();
+    ctx.translate(fx + fw*0.5, fy + fh*0.5);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(0,0, 52, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = 'rgba(42,100,255,0.85)';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-18,-18); ctx.lineTo(0,0); ctx.lineTo(18,-18);
+    ctx.moveTo(0,0); ctx.lineTo(0,22);
+    ctx.stroke();
+    ctx.restore();
+
+    // Goal glows/labels
+    drawGoal(goals.left,  'rgba(42,100,255,0.55)', 'BYU GOAL');
+    drawGoal(goals.right, 'rgba(255,91,122,0.55)', 'UTAH GOAL');
+  }
+
+  function drawCoins(t){
+    for (const c of state.coins){
+      if (c.taken) continue;
+      const bob = Math.sin(t*3 + c.x*0.02 + c.y*0.02) * 2.5;
+
+      ctx.globalAlpha = 0.23;
+      ctx.fillStyle = 'rgba(255,209,102,0.85)';
+      ctx.beginPath();
+      ctx.arc(c.x, c.y + bob, c.r + 7, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+      const grad = ctx.createLinearGradient(c.x, c.y-c.r, c.x, c.y+c.r);
+      grad.addColorStop(0, 'rgba(255,236,180,0.96)');
+      grad.addColorStop(1, 'rgba(255,183,77,0.95)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y + bob, c.r, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  }
+
+  function drawBoxes(t){
+    for (const b of state.boxes){
+      const wob = Math.sin(t*2.6 + b.phase) * 2.0;
+
+      if (!b.active){
+        ctx.globalAlpha = 0.14;
+        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6,6]);
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 14, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.font = '1000 10px ui-sans-serif, system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(Math.max(0, b.respawnT).toFixed(0), b.x, b.y);
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = 'rgba(124,246,255,0.55)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y + wob, 20, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      const x = b.x - b.w*0.5;
+      const y = b.y - b.h*0.5 + wob;
+
+      const g = ctx.createLinearGradient(x,y,x,y+b.h);
+      g.addColorStop(0,'rgba(255,255,255,0.14)');
+      g.addColorStop(1,'rgba(255,255,255,0.06)');
+      ctx.fillStyle = g;
+      drawRoundedRect(x,y,b.w,b.h,7);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.26)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      ctx.globalAlpha = (b.collectLockT > 0) ? 0.35 : 0.95;
+      ctx.fillStyle = 'rgba(255,209,102,0.95)';
+      ctx.font = '1100 14px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', b.x, b.y + wob + 1);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawBall(){
+    const b = state.ball;
+
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.ellipse(b.x+3, b.y+5, b.r*1.05, b.r*0.85, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r+8, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    const g = ctx.createRadialGradient(b.x - 4, b.y - 6, 2, b.x, b.y, b.r+2);
+    g.addColorStop(0,'rgba(255,255,255,0.97)');
+    g.addColorStop(1,'rgba(200,220,255,0.84)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function drawCar(car, t, isBYU){
+    for (const p of car.trail){
+      const a = clamp(p.t / 0.18, 0, 1);
+      ctx.globalAlpha = 0.16 * a;
+      ctx.fillStyle = car.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, car.r * (0.60 + 0.28*a), 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    const air = clamp(car.z / 80, 0, 1);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.ellipse(car.x+3, car.y+5, car.r*(1.05-air*0.25), car.r*(0.80-air*0.25), 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    const lift = -car.z * 0.06;
+    const ang = Math.atan2(car.faceY, car.faceX);
+
+    ctx.save();
+    ctx.translate(car.x, car.y + lift);
+    ctx.rotate(ang);
+
+    if (isBYU && car.power !== POWER.NONE){
+      const pc = powerInfo[car.power].color;
+      ctx.globalAlpha = 0.16;
+      ctx.fillStyle = pc;
+      ctx.beginPath();
+      ctx.arc(0,0, car.r+10, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // invuln shimmer after explosion respawn
+    if (car.respawnLock > 0){
+      ctx.globalAlpha = 0.55 + 0.35*Math.sin(t*18);
+    }
+
+    const w = 28, h = 20;
+    const bodyG = ctx.createLinearGradient(0,-h/2,0,h/2);
+    bodyG.addColorStop(0,'rgba(255,255,255,0.14)');
+    bodyG.addColorStop(1,'rgba(255,255,255,0.06)');
+    ctx.fillStyle = bodyG;
+    drawRoundedRect(-w/2,-h/2,w,h,9);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    ctx.globalAlpha = Math.min(ctx.globalAlpha, 1);
+    ctx.strokeStyle = car.color;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(-9, 0);
+    ctx.lineTo(12, 0);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.beginPath(); ctx.roundRect(-w/2+2, -h/2-2, 7, 6, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(-w/2+2,  h/2-4, 7, 6, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect( w/2-9, -h/2-2, 7, 6, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect( w/2-9,  h/2-4, 7, 6, 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    if (isBYU && car.power !== POWER.NONE){
+      ctx.globalAlpha = 0.95;
+      ctx.font = '1100 13px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = powerInfo[car.power].color;
+      ctx.fillText(powerInfo[car.power].icon, 0, -18);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+  }
+
+  function drawParticles(){
+    for (const p of state.particles){
+      const a = clamp(p.t / 0.65, 0, 1);
+      if (p.ring){
+        ctx.globalAlpha = 0.55 * a;
+        ctx.strokeStyle = p.col;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.globalAlpha = 0.85 * a;
+        ctx.fillStyle = p.col;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function drawPausedBanner(){
+    if (!state.paused) return;
+    ctx.save();
+    ctx.globalAlpha = 0.78;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(FIELD.x, FIELD.y, FIELD.w, FIELD.h);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '1100 26px ui-sans-serif, system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PAUSED', FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h*0.5 - 12);
+
+    ctx.font = '1000 14px ui-sans-serif, system-ui';
+    ctx.globalAlpha = 0.8;
+    ctx.fillText('Press P to resume', FIELD.x + FIELD.w*0.5, FIELD.y + FIELD.h*0.5 + 18);
+    ctx.restore();
+  }
+
+  function drawTips(t){
+    if (!state.showTips || state.paused || !state.running) return;
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = 'rgba(10,16,32,0.55)';
+    drawRoundedRect(FIELD.x + 14, FIELD.y + FIELD.h - 76, 620, 54, 14);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(234,241,255,0.92)';
+    ctx.font = '1000 13px ui-sans-serif, system-ui';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const mode = state.overtime ? 'OVERTIME (Sudden Death)' : 'Regulation';
+    ctx.fillText(`Mode: ${mode} • Faster cars • Blue+Red touch = BOOM + respawn`, FIELD.x + 28, FIELD.y + FIELD.h - 66);
+    ctx.restore();
+  }
+
+  // Render
+  function worldToScreen(){ ctx.setTransform(view.scale, 0, 0, view.scale, view.ox, view.oy); }
+  function render(t){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    worldToScreen();
+
+    drawStadium(t);
+    drawCoins(t);
+    drawBoxes(t);
+    drawBall(t);
+    drawCar(state.byu, t, true);
+    drawCar(state.utah, t, false);
+    drawParticles();
+    drawTips(t);
+    drawPausedBanner();
+  }
+
+  // UI hooks
+  document.getElementById('playBtn').addEventListener('click', startGame);
+  document.getElementById('restartBtn').addEventListener('click', resetMatch);
+  document.getElementById('tipsBtn').addEventListener('click', () => {
+    state.showTips = !state.showTips;
+    UI.overlayHint.textContent = state.showTips ? 'Tips enabled.' : 'Tips disabled.';
+    beep(420, 0.04, 'sine', 0.03);
+  });
+
+  // Loop
+  let last = performance.now();
+  function loop(now){
+    const dtRaw = (now - last)/1000;
+    last = now;
+    const dt = clamp(dtRaw, 0, 0.033);
+    step(dt);
+    render(now/1000);
+    requestAnimationFrame(loop);
+  }
+
+  // Startup
+  resize();
+  resetMatch();
+  updateHud();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
